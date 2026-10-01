@@ -1,0 +1,355 @@
+/* ==========================================================================
+   Obsidian Visual Math Formula Editor Plugin Stylesheet
+   Uses native Obsidian CSS variables for seamless theme compatibility
+   ========================================================================== */
+
+/* Interaktive KaTeX Formeln mit Hover-Badge */
+.formula-editor-interactive {
+  position: relative;
+  display: inline-block;
+  border-radius: var(--radius-s, 4px);
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.formula-editor-interactive:hover {
+  background-color: var(--color-accent-subtle, rgba(124, 58, 237, 0.1));
+  box-shadow: 0 0 0 1px var(--interactive-accent, #7c3aed);
+}
+
+.formula-editor-hover-badge {
+  display: none;
+  position: absolute;
+  top: -24px;
+  right: 0;
+  background: var(--background-secondary-alt, #262626);
+  color: var(--text-normal, #f4f4f5);
+  border: 1px solid var(--background-modifier-border, #404040);
+  border-radius: var(--radius-s, 4px);
+  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  z-index: 10;
+  box-shadow: var(--shadow-s, 0 2px 8px rgba(0, 0, 0, 0.25));
+  white-space: nowrap;
+}
+
+.formula-editor-hover-badge .formula-icon {
+  color: var(--interactive-accent, #fbbf24);
+  font-weight: bold;
+  margin-right: 3px;
+}
+
+.formula-editor-interactive:hover .formula-editor-hover-badge {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Modal Styling */
+.obsidian-formula-modal {
+  padding: 20px !important;
+  max-width: 680px !important;
+  background-color: var(--background-primary, #1e1e1e);
+  color: var(--text-normal, #dcddde);
+  border-radius: var(--radius-l, 12px);
+}
+
+.formula-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--background-modifier-border, #333333);
+  padding-bottom: 12px;
+}
+
+.formula-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.formula-modal-title h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-normal, #ffffff);
+}
+
+.formula-sigma-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: var(--interactive-accent, #7c3aed);
+  color: var(--text-on-accent, #ffffff);
+  border-radius: var(--radius-s, 6px);
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.formula-mode-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: var(--text-muted, #999);
+}
+
+.formula-mode-btn-group {
+  display: inline-flex;
+  background: var(--background-secondary, #141414);
+  border: 1px solid var(--background-modifier-border, #333);
+  border-radius: var(--radius-m, 6px);
+  padding: 3px;
+  gap: 4px;
+}
+
+.formula-mode-btn-group button {
+  background: transparent;
+  border: none;
+  font-size: 12px;
+  padding: 4px 10px;
+  color: var(--text-muted, #888);
+  border-radius: var(--radius-s, 4px);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.formula-mode-btn-group button.mod-cta {
+  background: var(--interactive-accent, #7c3aed);
+  color: var(--text-on-accent, #ffffff);
+  font-weight: 600;
+}
+
+.obsidian-radio-custom {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid #52525b;
+  border-radius: 50%;
+  outline: none;
+  cursor: pointer;
+  display: inline-grid;
+  place-content: center;
+  margin: 0;
+  background: #09090b;
+  vertical-align: middle;
+  transition: all 0.15s ease;
+}
+.obsidian-radio-custom::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transform: scale(0);
+  transition: 120ms transform ease-in-out;
+  background-color: #f59e0b;
+}
+.obsidian-radio-custom:checked {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+}
+.obsidian-radio-custom:checked::before {
+  transform: scale(1);
+}
+
+/* Preview Box */
+.formula-preview-container {
+  margin-bottom: 14px;
+}
+
+.formula-preview-label,
+.formula-input-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted, #888);
+  margin-bottom: 6px;
+}
+
+.formula-preview-box {
+  background: var(--background-secondary, #121212);
+  border: 1px solid var(--background-modifier-border, #333);
+  border-radius: var(--radius-m, 8px);
+  padding: 16px;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-x: auto;
+  font-size: 1.15rem;
+  color: var(--text-normal, #f4f4f5);
+}
+
+/* Textarea */
+.formula-textarea {
+  width: 100%;
+  font-family: var(--font-monospace, monospace);
+  font-size: 13px;
+  background: var(--background-secondary, #121212);
+  color: var(--text-normal, #f4f4f5);
+  border: 1px solid var(--background-modifier-border, #333);
+  border-radius: var(--radius-m, 8px);
+  padding: 10px;
+  resize: vertical;
+  margin-bottom: 14px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.formula-textarea:focus {
+  border-color: var(--interactive-accent, #7c3aed);
+}
+
+/* Symbol & Vorlagen Tabs */
+.formula-catalog-container {
+  border: 1px solid var(--background-modifier-border, #333);
+  border-radius: var(--radius-m, 8px);
+  background: var(--background-secondary, #141414);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.formula-catalog-tabs {
+  display: flex;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--background-modifier-border, #333);
+  background: var(--background-secondary-alt, #101010);
+}
+
+.formula-tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 8px 14px;
+  font-size: 12px;
+  color: var(--text-muted, #888);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.formula-tab-btn:hover {
+  color: var(--text-normal, #f4f4f5);
+}
+
+.formula-tab-btn.is-active {
+  color: var(--text-normal, #ffffff);
+  border-bottom-color: var(--interactive-accent, #7c3aed);
+  font-weight: 600;
+  background: var(--background-secondary, #141414);
+}
+
+.formula-catalog-content {
+  padding: 12px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.formula-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 8px;
+}
+
+.formula-preset-card {
+  text-align: left;
+  background: var(--background-primary, #1e1e1e);
+  border: 1px solid var(--background-modifier-border, #333);
+  border-radius: var(--radius-s, 6px);
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.formula-preset-card:hover {
+  border-color: var(--interactive-accent, #7c3aed);
+  background: var(--background-modifier-hover, #2a2a2a);
+}
+
+.formula-preset-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-normal, #f4f4f5);
+  margin-bottom: 2px;
+}
+
+.formula-preset-code {
+  font-size: 11px;
+  font-family: var(--font-monospace, monospace);
+  color: var(--text-muted, #888);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.formula-chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.formula-chip {
+  background: var(--background-primary, #1e1e1e);
+  border: 1px solid var(--background-modifier-border, #333);
+  color: var(--text-normal, #e4e4e7);
+  padding: 4px 8px;
+  border-radius: var(--radius-s, 4px);
+  font-size: 12px;
+  font-family: var(--font-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.formula-chip:hover {
+  border-color: var(--interactive-accent, #7c3aed);
+  background: var(--background-modifier-hover, #2a2a2a);
+}
+
+.formula-greek-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 6px;
+}
+
+.formula-greek-btn {
+  background: var(--background-primary, #1e1e1e);
+  border: 1px solid var(--background-modifier-border, #333);
+  color: var(--text-normal, #e4e4e7);
+  padding: 4px 6px;
+  border-radius: var(--radius-s, 4px);
+  font-size: 12px;
+  font-family: var(--font-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+  font-weight: 400;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+
+.formula-greek-btn:hover {
+  border-color: var(--interactive-accent, #7c3aed);
+}
+
+/* Modal Footer */
+.formula-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--background-modifier-border, #333);
+  padding-top: 14px;
+}
+
+.formula-modal-tip {
+  font-size: 11px;
+  color: var(--text-muted, #777);
+}
+
+.formula-modal-actions {
+  display: flex;
+  gap: 8px;
+}

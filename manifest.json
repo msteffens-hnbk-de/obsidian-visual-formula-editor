@@ -1,0 +1,11 @@
+{
+  "id": "obsidian-visual-formula-editor",
+  "name": "Visual Math Formula Editor",
+  "version": "1.0.1",
+  "minAppVersion": "1.4.0",
+  "description": "Interactive visual KaTeX/LaTeX formula editor for Obsidian with live preview, symbol catalog, click-to-edit on rendered formulas, and keyboard shortcuts.",
+  "author": "Obsidian Community",
+  "authorUrl": "https://github.com/obsidian-community/obsidian-visual-formula-editor",
+  "fundingUrl": "https://obsidian.md",
+  "isDesktopOnly": false
+}
