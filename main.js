@@ -59,10 +59,12 @@ var VisualFormulaEditorPlugin = class extends import_obsidian.Plugin {
     __publicField(this, "hoveredMathEl", null);
     __publicField(this, "hoveredFormulaData", null);
     __publicField(this, "hideButtonTimeout", null);
+    __publicField(this, "styleEl", null);
   }
   async onload() {
     console.log("[VisualFormulaEditorPlugin] Loaded successfully (v1.0.8 - Table Formula Edit & Native Cell Coexistence)");
     await this.loadSettings();
+    this.injectPluginStyles();
     if (this.settings.enableFloatingHoverButton) {
       this.initFloatingHoverButton();
     }
@@ -94,7 +96,10 @@ var VisualFormulaEditorPlugin = class extends import_obsidian.Plugin {
       id: "insert-inline-math",
       name: "Insert Inline Formula ($...$)",
       editorCallback: (editor) => {
-        new FormulaEditorModal(this.app, this, editor, "", false).open();
+        const cursor = editor.getCursor();
+        const line = editor.getLine(cursor.line);
+        const inTable = line.includes("|");
+        new FormulaEditorModal(this.app, this, editor, "", false, void 0, void 0, void 0, void 0, inTable).open();
       },
       hotkeys: [{ modifiers: ["Mod", "Shift"], key: "I" }]
     });
@@ -102,7 +107,10 @@ var VisualFormulaEditorPlugin = class extends import_obsidian.Plugin {
       id: "insert-block-math",
       name: "Insert Block Formula ($$...$$)",
       editorCallback: (editor) => {
-        new FormulaEditorModal(this.app, this, editor, "", true).open();
+        const cursor = editor.getCursor();
+        const line = editor.getLine(cursor.line);
+        const inTable = line.includes("|");
+        new FormulaEditorModal(this.app, this, editor, "", !inTable, void 0, void 0, void 0, void 0, inTable).open();
       },
       hotkeys: [{ modifiers: ["Mod", "Shift"], key: "B" }]
     });
@@ -112,6 +120,7 @@ var VisualFormulaEditorPlugin = class extends import_obsidian.Plugin {
           const selection = editor.getSelection();
           const cursor = editor.getCursor();
           const line = editor.getLine(cursor.line);
+          const inTable = line.includes("|");
           const formulaMatch = this.detectFormulaUnderCursor(line, cursor.ch);
           menu.addItem((item) => {
             item.setTitle(formulaMatch ? "Edit Formula (Visual Editor)" : "Insert Formula (Visual Editor)").setIcon("sigma").onClick(() => {
@@ -121,11 +130,12 @@ var VisualFormulaEditorPlugin = class extends import_obsidian.Plugin {
                   this,
                   editor,
                   formulaMatch.latex,
-                  formulaMatch.isBlock,
+                  inTable ? false : formulaMatch.isBlock,
                   formulaMatch.range,
                   formulaMatch.latex,
                   void 0,
-                  formulaMatch.raw
+                  formulaMatch.raw,
+                  inTable
                 ).open();
               } else if (selection) {
                 new FormulaEditorModal(
@@ -133,10 +143,15 @@ var VisualFormulaEditorPlugin = class extends import_obsidian.Plugin {
                   this,
                   editor,
                   selection,
-                  selection.includes("\\\\") || selection.length > 30
+                  inTable ? false : selection.includes("\\\\") || selection.length > 30,
+                  void 0,
+                  selection,
+                  void 0,
+                  void 0,
+                  inTable
                 ).open();
               } else {
-                new FormulaEditorModal(this.app, this, editor, "", true).open();
+                new FormulaEditorModal(this.app, this, editor, "", !inTable, void 0, void 0, void 0, void 0, inTable).open();
               }
             });
           });
@@ -161,16 +176,20 @@ var VisualFormulaEditorPlugin = class extends import_obsidian.Plugin {
           if (formulaData && formulaData.latex && formulaData.latex.trim().length > 0) {
             evt.preventDefault();
             evt.stopPropagation();
+            const isInTable = Boolean(
+              formulaData.isInTable || target.closest("table, .cm-table-widget, .table-wrapper, .table-editor, .markdown-rendered table") || mathEl.closest("table, .cm-table-widget, .table-wrapper, .table-editor, .markdown-rendered table")
+            );
             new FormulaEditorModal(
               this.app,
               this,
               activeView.editor,
               formulaData.latex,
-              formulaData.isBlock,
+              isInTable ? false : formulaData.isBlock,
               void 0,
               formulaData.latex,
               formulaData.range,
-              formulaData.raw
+              formulaData.raw,
+              isInTable
             ).open();
           }
         }
@@ -212,6 +231,183 @@ var VisualFormulaEditorPlugin = class extends import_obsidian.Plugin {
     console.log("[VisualFormulaEditorPlugin] Unloaded");
     if (this.floatingButtonEl && this.floatingButtonEl.parentElement) {
       this.floatingButtonEl.remove();
+    }
+    this.removePluginStyles();
+  }
+  injectPluginStyles() {
+    this.removePluginStyles();
+    const css = `
+      /* 1. Block-Formeln im Edit-Modus (Live Preview) */
+      .markdown-source-view.mod-cm6 .cm-embed-block.cm-math-block,
+      .markdown-source-view.mod-cm6 .cm-embed-block:not(.cm-table-widget):not(:has(table)):has(.math-block),
+      .markdown-source-view.mod-cm6 .cm-embed-block:not(.cm-table-widget):not(:has(table)):has(mjx-container[jax="CHTML"][display="true"]),
+      .markdown-source-view.mod-cm6 .cm-embed-block:not(.cm-table-widget):not(:has(table)):has(mjx-container[display="true"]),
+      .markdown-source-view.mod-cm6 .cm-embed-block:not(.cm-table-widget):not(:has(table)):has(.katex-display),
+      .markdown-source-view.mod-cm6 .math.math-block {
+        position: relative !important;
+        border: 1px solid transparent !important;
+        background-color: transparent !important;
+        border-radius: var(--radius-m, 8px) !important;
+        padding: 6px 12px !important;
+        margin: 6px 0 !important;
+        box-shadow: none !important;
+        transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease !important;
+      }
+
+      /* \xC4u\xDFere Wrapper entlasten, mathematische Binnenstriche (mjx-line, frac-line, sqrt etc.) VOLLST\xC4NDIG intakt lassen */
+      .markdown-source-view.mod-cm6 .cm-embed-block.cm-math-block mjx-container,
+      .markdown-source-view.mod-cm6 .cm-embed-block.cm-math-block .math,
+      .markdown-source-view.mod-cm6 .cm-embed-block.cm-math-block .katex,
+      .markdown-source-view.mod-cm6 .cm-embed-block:not(.cm-table-widget):not(:has(table)):has(mjx-container[display="true"]) mjx-container,
+      .markdown-source-view.mod-cm6 .cm-embed-block:not(.cm-table-widget):not(:has(table)):has(.katex-display) .katex,
+      .markdown-source-view.mod-cm6 .math.math-block mjx-container,
+      .markdown-source-view.mod-cm6 .math.math-block .math,
+      .markdown-source-view.mod-cm6 .math.math-block .katex,
+      .markdown-source-view.mod-cm6 .math-inline mjx-container,
+      .markdown-source-view.mod-cm6 .math-inline .katex {
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+      }
+
+      /* Block-Hover im Edit-Modus: Genau EINE Umrandung und dezente Hinterlegung */
+      .markdown-source-view.mod-cm6 .cm-embed-block.cm-math-block:hover,
+      .markdown-source-view.mod-cm6 .cm-embed-block:not(.cm-table-widget):not(:has(table)):has(.math-block):hover,
+      .markdown-source-view.mod-cm6 .cm-embed-block:not(.cm-table-widget):not(:has(table)):has(mjx-container[jax="CHTML"][display="true"]):hover,
+      .markdown-source-view.mod-cm6 .cm-embed-block:not(.cm-table-widget):not(:has(table)):has(mjx-container[display="true"]):hover,
+      .markdown-source-view.mod-cm6 .cm-embed-block:not(.cm-table-widget):not(:has(table)):has(.katex-display):hover,
+      .markdown-source-view.mod-cm6 .math.math-block:hover {
+        border: 1px solid var(--interactive-accent, #a855f7) !important;
+        background-color: var(--color-accent-subtle, rgba(168, 85, 247, 0.12)) !important;
+        box-shadow: 0 0 0 1px var(--interactive-accent, #a855f7) !important;
+        border-radius: var(--radius-m, 8px) !important;
+        cursor: pointer !important;
+      }
+
+      /* Native Edit-Buttons und Artefakte auf Bl\xF6cken restlos ausblenden */
+      .markdown-source-view.mod-cm6 .edit-block-button,
+      .markdown-source-view.mod-cm6 .edit-block-button:hover,
+      .markdown-source-view.mod-cm6 [aria-label="Edit this block"],
+      .markdown-source-view.mod-cm6 [aria-label="Edit this block"]:hover,
+      .markdown-source-view.mod-cm6 .cm-embed-block .edit-block-button,
+      .markdown-source-view.mod-cm6 .cm-embed-block:hover .edit-block-button,
+      .markdown-source-view.mod-cm6 .cm-embed-block.cm-math-block::before,
+      .markdown-source-view.mod-cm6 .cm-embed-block.cm-math-block::after,
+      .markdown-source-view.mod-cm6 .cm-embed-block:has(mjx-container)::before,
+      .markdown-source-view.mod-cm6 .cm-embed-block:has(mjx-container)::after,
+      .markdown-source-view.mod-cm6 .math-block::before,
+      .markdown-source-view.mod-cm6 .math-block::after,
+      .edit-block-button,
+      [aria-label="Edit this block"] {
+        display: none !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        max-width: 0 !important;
+        max-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        position: absolute !important;
+        top: -9999px !important;
+        left: -9999px !important;
+        content: none !important;
+      }
+
+      /* 2. Inline-Formeln im Edit-Modus (Flie\xDFtext und Tabellenzellen) */
+      .markdown-source-view.mod-cm6 .math-inline,
+      .markdown-source-view.mod-cm6 .math:not(.math-block):not(:has(table)),
+      .markdown-source-view.mod-cm6 mjx-container:not([display="true"]):not(.math-inline mjx-container):not(.math mjx-container),
+      .markdown-source-view.mod-cm6 .katex:not(.katex-display):not(.math-inline .katex):not(.math .katex) {
+        position: relative !important;
+        display: inline-block !important;
+        padding: 1px 4px !important;
+        margin: 0 1px !important;
+        border-radius: var(--radius-s, 4px) !important;
+        border: 1px solid transparent !important;
+        background-color: transparent !important;
+        box-shadow: none !important;
+        transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease !important;
+      }
+
+      /* Inline-Hover im Edit-Modus: Genau EINE Umrandung und dezente Hinterlegung */
+      .markdown-source-view.mod-cm6 .math-inline:hover,
+      .markdown-source-view.mod-cm6 .math:not(.math-block):not(:has(table)):hover,
+      .markdown-source-view.mod-cm6 mjx-container:not([display="true"]):not(.math-inline mjx-container):not(.math mjx-container):hover,
+      .markdown-source-view.mod-cm6 .katex:not(.katex-display):not(.math-inline .katex):not(.math .katex):hover {
+        border: 1px solid var(--interactive-accent, #a855f7) !important;
+        background-color: var(--color-accent-subtle, rgba(168, 85, 247, 0.14)) !important;
+        box-shadow: 0 0 0 1px var(--interactive-accent, #a855f7) !important;
+        border-radius: var(--radius-s, 4px) !important;
+        cursor: pointer !important;
+      }
+
+      /* Keine innere Doppel-Umrandung in Tabellenzellen */
+      .markdown-source-view.mod-cm6 .math-inline mjx-container,
+      .markdown-source-view.mod-cm6 .math-inline .katex,
+      .markdown-source-view.mod-cm6 .math mjx-container,
+      .markdown-source-view.mod-cm6 .math .katex,
+      .markdown-source-view.mod-cm6 .math-inline mjx-container:hover,
+      .markdown-source-view.mod-cm6 .math-inline .katex:hover,
+      .markdown-source-view.mod-cm6 .math mjx-container:hover,
+      .markdown-source-view.mod-cm6 .math .katex:hover {
+        border: 1px solid transparent !important;
+        background-color: transparent !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+
+      /* Read-Modus: Keine Bearbeitungs-Umrandungen */
+      .markdown-rendered .math,
+      .markdown-rendered .math-block,
+      .markdown-rendered .math-inline,
+      .markdown-rendered mjx-container,
+      .markdown-rendered .katex,
+      .markdown-preview-view .math,
+      .markdown-preview-view .math-block,
+      .markdown-preview-view .math-inline,
+      .markdown-rendered .math:hover,
+      .markdown-rendered .math-block:hover,
+      .markdown-rendered .math-inline:hover,
+      .markdown-rendered mjx-container:hover,
+      .markdown-rendered .katex:hover,
+      .markdown-preview-view .math:hover,
+      .markdown-preview-view .math-block:hover,
+      .markdown-preview-view .math-inline:hover {
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        cursor: default !important;
+      }
+    `;
+    try {
+      if (typeof document !== "undefined" && document.head && typeof document.createElement === "function") {
+        this.styleEl = document.createElement("style");
+        this.styleEl.id = "obsidian-visual-formula-editor-styles";
+        this.styleEl.textContent = css;
+        document.head.appendChild(this.styleEl);
+      }
+    } catch (_e) {
+    }
+  }
+  removePluginStyles() {
+    try {
+      if (this.styleEl && this.styleEl.parentElement) {
+        this.styleEl.remove();
+        this.styleEl = null;
+      }
+      if (typeof document !== "undefined" && typeof document.getElementById === "function") {
+        const existing = document.getElementById("obsidian-visual-formula-editor-styles");
+        if (existing && existing.parentElement) {
+          existing.remove();
+        }
+      }
+    } catch (_e) {
     }
   }
   async loadSettings() {
@@ -400,6 +596,7 @@ var VisualFormulaEditorPlugin = class extends import_obsidian.Plugin {
   openEditorForView(editor, view) {
     const cursor = editor.getCursor();
     const line = editor.getLine(cursor.line);
+    const inTable = line.includes("|");
     const formulaMatch = this.detectFormulaUnderCursor(line, cursor.ch);
     const selection = editor.getSelection();
     if (formulaMatch) {
@@ -408,25 +605,26 @@ var VisualFormulaEditorPlugin = class extends import_obsidian.Plugin {
         this,
         editor,
         formulaMatch.latex,
-        formulaMatch.isBlock,
+        inTable ? false : formulaMatch.isBlock,
         formulaMatch.range,
         formulaMatch.latex,
         void 0,
-        formulaMatch.raw
+        formulaMatch.raw,
+        inTable
       ).open();
       return;
     }
     if (selection && selection.trim().length > 0) {
       let selText = selection.trim();
-      let isBlockSel = true;
+      let isBlockSel = !inTable;
       if (selText.startsWith("$$") && selText.endsWith("$$") && selText.length >= 4) {
         selText = selText.slice(2, -2).trim();
-        isBlockSel = true;
+        isBlockSel = !inTable;
       } else if (selText.startsWith("$") && selText.endsWith("$") && selText.length >= 2) {
         selText = selText.slice(1, -1).trim();
         isBlockSel = false;
       }
-      new FormulaEditorModal(this.app, this, editor, selText, isBlockSel, void 0, selText).open();
+      new FormulaEditorModal(this.app, this, editor, selText, inTable ? false : isBlockSel, void 0, selText, void 0, void 0, inTable).open();
       return;
     }
     const fullText = editor.getValue();
@@ -438,18 +636,19 @@ var VisualFormulaEditorPlugin = class extends import_obsidian.Plugin {
         this,
         editor,
         foundNear.latex,
-        foundNear.isBlock,
+        inTable ? false : foundNear.isBlock,
         void 0,
         foundNear.latex,
         {
           from: editor.offsetToPos(foundNear.fromOffset),
           to: editor.offsetToPos(foundNear.toOffset)
         },
-        foundNear.raw
+        foundNear.raw,
+        inTable
       ).open();
       return;
     }
-    new FormulaEditorModal(this.app, this, editor, "", true).open();
+    new FormulaEditorModal(this.app, this, editor, "", !inTable, void 0, void 0, void 0, void 0, inTable).open();
   }
   /**
    * Öffnet den Editor für ein geklicktes Element.
@@ -460,16 +659,20 @@ var VisualFormulaEditorPlugin = class extends import_obsidian.Plugin {
     const editor = activeView ? activeView.editor : void 0;
     const formulaData = this.getFormulaFromMathElement(mathEl, activeView);
     if (formulaData && formulaData.latex) {
+      const isInTable = Boolean(
+        formulaData.isInTable || mathEl.closest("table, .cm-table-widget, .table-wrapper, .table-editor, .markdown-rendered table")
+      );
       new FormulaEditorModal(
         this.app,
         this,
         editor,
         formulaData.latex,
-        formulaData.isBlock,
+        isInTable ? false : formulaData.isBlock,
         void 0,
         formulaData.latex,
         formulaData.range,
-        formulaData.raw
+        formulaData.raw,
+        isInTable
       ).open();
       return;
     }
@@ -627,6 +830,7 @@ var VisualFormulaEditorPlugin = class extends import_obsidian.Plugin {
               return {
                 latex: formulaLatex,
                 isBlock: false,
+                isInTable: true,
                 range: {
                   from: { line: lineNum, ch: startCh },
                   to: { line: lineNum, ch: endCh }
@@ -645,6 +849,7 @@ var VisualFormulaEditorPlugin = class extends import_obsidian.Plugin {
           return {
             latex: formulaLatex,
             isBlock: false,
+            isInTable: true,
             range: {
               from: { line: lineNum, ch: m.index },
               to: { line: lineNum, ch: m.index + m[0].length }
@@ -675,6 +880,7 @@ var VisualFormulaEditorPlugin = class extends import_obsidian.Plugin {
           return {
             latex: fm[1].trim(),
             isBlock: false,
+            isInTable: true,
             range: {
               from: editor.offsetToPos(fm.index),
               to: editor.offsetToPos(fm.index + fm[0].length)
@@ -931,12 +1137,13 @@ var VisualFormulaEditorPlugin = class extends import_obsidian.Plugin {
   }
 };
 var FormulaEditorModal = class extends import_obsidian.Modal {
-  constructor(app, plugin, editor, initialLatex = "", initialIsBlock = true, replaceRange, originalLatex, formulaRange, originalRaw) {
+  constructor(app, plugin, editor, initialLatex = "", initialIsBlock = true, replaceRange, originalLatex, formulaRange, originalRaw, isInTable = false) {
     super(app);
     __publicField(this, "plugin");
     __publicField(this, "editor");
     __publicField(this, "latex");
     __publicField(this, "isBlock");
+    __publicField(this, "isInTable");
     __publicField(this, "formulaRange");
     __publicField(this, "replaceRange");
     __publicField(this, "originalLatex");
@@ -952,7 +1159,8 @@ var FormulaEditorModal = class extends import_obsidian.Modal {
     this.editor = editor;
     const cleanedLatex = stripFormulaDelimiters(initialLatex);
     this.latex = cleanedLatex;
-    this.isBlock = initialIsBlock;
+    this.isInTable = isInTable;
+    this.isBlock = isInTable ? false : initialIsBlock;
     this.replaceRange = replaceRange;
     this.originalLatex = stripFormulaDelimiters(originalLatex || initialLatex);
     this.formulaRange = formulaRange;
@@ -981,6 +1189,11 @@ var FormulaEditorModal = class extends import_obsidian.Modal {
       cls: "formula-textarea",
       placeholder: "e.g. \\mathbf{A}\\mathbf{x} = \\mathbf{b}"
     });
+    this.textareaEl.setAttribute("spellcheck", "false");
+    this.textareaEl.setAttribute("autocorrect", "off");
+    this.textareaEl.setAttribute("autocapitalize", "off");
+    this.textareaEl.setAttribute("autocomplete", "off");
+    this.textareaEl.spellcheck = false;
     this.textareaEl.value = this.latex;
     this.textareaEl.rows = 3;
     this.textareaEl.oninput = () => {
@@ -1003,16 +1216,27 @@ var FormulaEditorModal = class extends import_obsidian.Modal {
     const inlineText = inlineLabel.createSpan({ text: "Inline ($...$)" });
     inlineText.style.color = !this.isBlock ? "var(--interactive-accent, #a855f7)" : "var(--text-normal, #d4d4d8)";
     const blockLabel = modeSwitch.createEl("label");
-    blockLabel.style.cssText = "display: inline-flex; align-items: center; gap: 8px; cursor: pointer;";
     const blockIcon = blockLabel.createSpan();
-    blockIcon.innerHTML = getRadioSvg(this.isBlock);
+    const isBlockChecked = this.isInTable ? false : this.isBlock;
+    blockIcon.innerHTML = getRadioSvg(isBlockChecked);
     const blockText = blockLabel.createSpan({ text: "Block ($$...$$)" });
-    blockText.style.color = this.isBlock ? "var(--interactive-accent, #a855f7)" : "var(--text-normal, #d4d4d8)";
+    if (this.isInTable) {
+      blockLabel.style.cssText = "display: inline-flex; align-items: center; gap: 8px; cursor: not-allowed; opacity: 0.45; user-select: none;";
+      blockLabel.title = "Block-Formeln ($$...$$) sind innerhalb von Tabellenzellen deaktiviert, um das Tabellenlayout intakt zu halten.";
+      blockText.style.cssText = "color: var(--text-muted, #71717a); text-decoration: line-through;";
+      const badge = blockLabel.createSpan({ text: "In Tabellen deaktiviert" });
+      badge.style.cssText = "font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 2px 6px; border-radius: 4px; background: rgba(120, 53, 15, 0.4); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);";
+    } else {
+      blockLabel.style.cssText = "display: inline-flex; align-items: center; gap: 8px; cursor: pointer;";
+      blockText.style.color = this.isBlock ? "var(--interactive-accent, #a855f7)" : "var(--text-normal, #d4d4d8)";
+    }
     const updateRadioVisuals = () => {
       inlineIcon.innerHTML = getRadioSvg(!this.isBlock);
       inlineText.style.color = !this.isBlock ? "var(--interactive-accent, #a855f7)" : "var(--text-normal, #d4d4d8)";
-      blockIcon.innerHTML = getRadioSvg(this.isBlock);
-      blockText.style.color = this.isBlock ? "var(--interactive-accent, #a855f7)" : "var(--text-normal, #d4d4d8)";
+      if (!this.isInTable) {
+        blockIcon.innerHTML = getRadioSvg(this.isBlock);
+        blockText.style.color = this.isBlock ? "var(--interactive-accent, #a855f7)" : "var(--text-normal, #d4d4d8)";
+      }
     };
     inlineLabel.onclick = () => {
       this.isBlock = false;
@@ -1021,6 +1245,10 @@ var FormulaEditorModal = class extends import_obsidian.Modal {
       this.updatePreview();
     };
     blockLabel.onclick = () => {
+      if (this.isInTable) {
+        new import_obsidian.Notice("In Tabellenzellen sind nur Inline-Formeln ($...$) zul\xE4ssig.");
+        return;
+      }
       this.isBlock = true;
       updateRadioVisuals();
       this.updateModeFeedback();
@@ -1056,8 +1284,12 @@ var FormulaEditorModal = class extends import_obsidian.Modal {
   updateModeFeedback() {
     if (!this.modeDescEl) return;
     const clean = stripFormulaDelimiters(this.latex);
-    const syntax = this.isBlock ? `$$ ${clean || "..."} $$ (Block)` : `$ ${clean || "..."} $ (Inline)`;
-    this.modeDescEl.setText(`Saved in note as: ${syntax}`);
+    if (this.isInTable) {
+      this.modeDescEl.setText(`Saved in table as: $ ${clean || "..."} $ (Inline-Formel)`);
+    } else {
+      const syntax = this.isBlock ? `$$ ${clean || "..."} $$ (Block)` : `$ ${clean || "..."} $ (Inline)`;
+      this.modeDescEl.setText(`Saved in note as: ${syntax}`);
+    }
   }
   updatePreview() {
     if (!this.previewEl) return;

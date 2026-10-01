@@ -3,46 +3,177 @@
    Uses native Obsidian CSS variables for seamless theme compatibility
    ========================================================================== */
 
-/* Interaktive KaTeX Formeln mit Hover-Badge */
-.formula-editor-interactive {
-  position: relative;
-  display: inline-block;
-  border-radius: var(--radius-s, 4px);
-  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+/* ==========================================================================
+   EDIT-MODUS: Nur im Bearbeitungsmodus (Live Preview) Formeln bei Hover markieren
+   ========================================================================== */
+
+/* 1. Embed-Blöcke von Obsidian vollständig von Rahmen und Schaltflächen befreien */
+.markdown-source-view.mod-cm6 .cm-embed-block:has(mjx-container),
+.markdown-source-view.mod-cm6 .cm-embed-block:has(.math),
+.markdown-source-view.mod-cm6 .cm-embed-block:has(.math-block),
+.markdown-source-view.mod-cm6 .cm-embed-block:has(.katex),
+.markdown-source-view.mod-cm6 .cm-embed-block:has(.katex-display),
+.markdown-source-view.mod-cm6 .cm-embed-block.cm-math-block {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  position: relative !important;
+  padding: 0 !important;
 }
 
-.formula-editor-interactive:hover {
-  background-color: var(--color-accent-subtle, rgba(124, 58, 237, 0.1));
-  box-shadow: 0 0 0 1px var(--interactive-accent, #7c3aed);
+/* 2. Alle nativen Edit-Buttons, Fragmente und Pseudo-Elemente auf Mathe-Blöcken restlos eliminieren */
+.markdown-source-view.mod-cm6 .edit-block-button,
+.markdown-source-view.mod-cm6 .edit-block-button:hover,
+.markdown-source-view.mod-cm6 .edit-block-button:focus,
+.markdown-source-view.mod-cm6 .edit-block-button:active,
+.markdown-source-view.mod-cm6 [aria-label*="Edit this block"],
+.markdown-source-view.mod-cm6 [aria-label*="Edit block"],
+.markdown-source-view.mod-cm6 .cm-embed-block .edit-block-button,
+.markdown-source-view.mod-cm6 .cm-embed-block:hover .edit-block-button,
+.markdown-source-view.mod-cm6 .cm-embed-block-button,
+.markdown-source-view.mod-cm6 .cm-embed-block::before,
+.markdown-source-view.mod-cm6 .cm-embed-block::after,
+.markdown-source-view.mod-cm6 .math-block::before,
+.markdown-source-view.mod-cm6 .math-block::after,
+.markdown-source-view.mod-cm6 mjx-container::before,
+.markdown-source-view.mod-cm6 mjx-container::after,
+.formula-editor-floating-badge {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  max-width: 0 !important;
+  max-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  position: absolute !important;
+  top: -9999px !important;
+  left: -9999px !important;
+  content: none !important;
 }
 
-.formula-editor-hover-badge {
-  display: none;
-  position: absolute;
-  top: -24px;
-  right: 0;
-  background: var(--background-secondary-alt, #262626);
-  color: var(--text-normal, #f4f4f5);
-  border: 1px solid var(--background-modifier-border, #404040);
-  border-radius: var(--radius-s, 4px);
-  padding: 2px 7px;
-  font-size: 11px;
-  font-weight: 500;
-  cursor: pointer;
-  z-index: 10;
-  box-shadow: var(--shadow-s, 0 2px 8px rgba(0, 0, 0, 0.25));
-  white-space: nowrap;
+/* 3. Block-Formeln: Das Mathe-Element selbst sauber darstellen und umranden */
+.markdown-source-view.mod-cm6 mjx-container[display="true"],
+.markdown-source-view.mod-cm6 .math.math-block,
+.markdown-source-view.mod-cm6 .katex-display {
+  position: relative !important;
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  border: 1px solid transparent !important;
+  background-color: transparent !important;
+  border-radius: var(--radius-m, 8px) !important;
+  padding: 8px 12px !important;
+  margin: 6px 0 !important;
+  box-shadow: none !important;
+  text-align: center !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease !important;
 }
 
-.formula-editor-hover-badge .formula-icon {
-  color: var(--interactive-accent, #fbbf24);
-  font-weight: bold;
-  margin-right: 3px;
+/* Block-Hover im Edit-Modus: Genau EINE Umrandung und dezente Hinterlegung */
+.markdown-source-view.mod-cm6 mjx-container[display="true"]:hover,
+.markdown-source-view.mod-cm6 .math.math-block:hover,
+.markdown-source-view.mod-cm6 .katex-display:hover,
+.markdown-source-view.mod-cm6 .cm-embed-block.cm-math-block:hover > mjx-container,
+.markdown-source-view.mod-cm6 .cm-embed-block:has(mjx-container[display="true"]):hover > mjx-container {
+  border: 1px solid var(--interactive-accent, #a855f7) !important;
+  background-color: var(--color-accent-subtle, rgba(168, 85, 247, 0.12)) !important;
+  box-shadow: 0 0 0 1px var(--interactive-accent, #a855f7) !important;
+  border-radius: var(--radius-m, 8px) !important;
+  cursor: pointer !important;
 }
 
-.formula-editor-interactive:hover .formula-editor-hover-badge {
-  display: inline-flex;
-  align-items: center;
+/* 2. Inline-Formeln im Edit-Modus (Fließtext und Tabellenzellen) */
+/* WICHTIG: mjx-container:not([display="true"]) erfasst alle normalen Inline-Formeln; cm-embed-block wird strikt vermieden */
+.markdown-source-view.mod-cm6 .math-inline,
+.markdown-source-view.mod-cm6 .math:not(.math-block):not(:has(table)),
+.markdown-source-view.mod-cm6 mjx-container:not([display="true"]):not(.math-inline mjx-container):not(.math mjx-container),
+.markdown-source-view.mod-cm6 .katex:not(.katex-display):not(.math-inline .katex):not(.math .katex) {
+  position: relative !important;
+  display: inline-block !important;
+  padding: 1px 4px !important;
+  margin: 0 1px !important;
+  border-radius: var(--radius-s, 4px) !important;
+  border: 1px solid transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+/* Inline-Hover im Edit-Modus: Genau EINE Umrandung und dezente Hinterlegung */
+.markdown-source-view.mod-cm6 .math-inline:hover,
+.markdown-source-view.mod-cm6 .math:not(.math-block):not(:has(table)):hover,
+.markdown-source-view.mod-cm6 mjx-container:not([display="true"]):not(.math-inline mjx-container):not(.math mjx-container):hover,
+.markdown-source-view.mod-cm6 .katex:not(.katex-display):not(.math-inline .katex):not(.math .katex):hover {
+  border: 1px solid var(--interactive-accent, #a855f7) !important;
+  background-color: var(--color-accent-subtle, rgba(168, 85, 247, 0.14)) !important;
+  box-shadow: 0 0 0 1px var(--interactive-accent, #a855f7) !important;
+  border-radius: var(--radius-s, 4px) !important;
+  cursor: pointer !important;
+}
+
+/* Wenn mjx-container oder katex innerhalb von .math oder .math-inline liegt (z. B. in Tabellenzellen), NIEMALS eine zweite innere Umrandung vergeben */
+.markdown-source-view.mod-cm6 .math-inline mjx-container,
+.markdown-source-view.mod-cm6 .math-inline .katex,
+.markdown-source-view.mod-cm6 .math mjx-container,
+.markdown-source-view.mod-cm6 .math .katex,
+.markdown-source-view.mod-cm6 .math-inline mjx-container:hover,
+.markdown-source-view.mod-cm6 .math-inline .katex:hover,
+.markdown-source-view.mod-cm6 .math mjx-container:hover,
+.markdown-source-view.mod-cm6 .math .katex:hover {
+  border: 1px solid transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Tabellen (.cm-table-widget, table etc.) dürfen NIEMALS eine Formel-Umrandung erhalten */
+.markdown-source-view.mod-cm6 .cm-table-widget,
+.markdown-source-view.mod-cm6 .cm-embed-block:has(table),
+.markdown-source-view.mod-cm6 table {
+  box-shadow: none;
+}
+
+/* ==========================================================================
+   READ-MODUS: Formeln rein lesbar darstellen, KEINE Bearbeitungs-Umrandung
+   ========================================================================== */
+.markdown-rendered .math,
+.markdown-rendered .math-block,
+.markdown-rendered .math-inline,
+.markdown-rendered mjx-container,
+.markdown-rendered .katex,
+.markdown-rendered .katex-display,
+.markdown-preview-view .math,
+.markdown-preview-view .math-block,
+.markdown-preview-view .math-inline,
+.markdown-rendered .math:hover,
+.markdown-rendered .math-block:hover,
+.markdown-rendered .math-inline:hover,
+.markdown-rendered mjx-container:hover,
+.markdown-rendered .katex:hover,
+.markdown-preview-view .math:hover,
+.markdown-preview-view .math-block:hover,
+.markdown-preview-view .math-inline:hover {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  cursor: default !important;
+}
+
+/* Störende Schwebende Edit-Buttons und Badges komplett ausblenden */
+.formula-editor-hover-badge,
+.formula-editor-floating-badge,
+.formula-hover-edit-btn {
+  display: none !important;
 }
 
 /* Modal Styling */
@@ -147,11 +278,11 @@
   border-radius: 50%;
   transform: scale(0);
   transition: 120ms transform ease-in-out;
-  background-color: #f59e0b;
+  background-color: var(--interactive-accent, #a855f7);
 }
 .obsidian-radio-custom:checked {
-  border-color: #f59e0b;
-  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+  border-color: var(--interactive-accent, #a855f7);
+  box-shadow: 0 0 0 2px var(--color-accent-subtle, rgba(168, 85, 247, 0.2));
 }
 .obsidian-radio-custom:checked::before {
   transform: scale(1);
