@@ -138,12 +138,13 @@ var VisualFormulaEditorPlugin = class extends import_obsidian.Plugin {
                   inTable
                 ).open();
               } else if (selection) {
+                const defaultIsBlock = !inTable && this.settings.defaultMode === "block";
                 new FormulaEditorModal(
                   this.app,
                   this,
                   editor,
                   selection,
-                  inTable ? false : selection.includes("\\\\") || selection.length > 30,
+                  inTable ? false : selection.includes("\\\\") || selection.length > 30 ? true : defaultIsBlock,
                   void 0,
                   selection,
                   void 0,
@@ -151,7 +152,8 @@ var VisualFormulaEditorPlugin = class extends import_obsidian.Plugin {
                   inTable
                 ).open();
               } else {
-                new FormulaEditorModal(this.app, this, editor, "", !inTable, void 0, void 0, void 0, void 0, inTable).open();
+                const defaultIsBlock = !inTable && this.settings.defaultMode === "block";
+                new FormulaEditorModal(this.app, this, editor, "", defaultIsBlock, void 0, void 0, void 0, void 0, inTable).open();
               }
             });
           });
@@ -616,7 +618,8 @@ var VisualFormulaEditorPlugin = class extends import_obsidian.Plugin {
     }
     if (selection && selection.trim().length > 0) {
       let selText = selection.trim();
-      let isBlockSel = !inTable;
+      const defaultIsBlock2 = !inTable && this.settings.defaultMode === "block";
+      let isBlockSel = defaultIsBlock2;
       if (selText.startsWith("$$") && selText.endsWith("$$") && selText.length >= 4) {
         selText = selText.slice(2, -2).trim();
         isBlockSel = !inTable;
@@ -648,7 +651,8 @@ var VisualFormulaEditorPlugin = class extends import_obsidian.Plugin {
       ).open();
       return;
     }
-    new FormulaEditorModal(this.app, this, editor, "", !inTable, void 0, void 0, void 0, void 0, inTable).open();
+    const defaultIsBlock = !inTable && this.settings.defaultMode === "block";
+    new FormulaEditorModal(this.app, this, editor, "", defaultIsBlock, void 0, void 0, void 0, void 0, inTable).open();
   }
   /**
    * Öffnet den Editor für ein geklicktes Element.
@@ -1137,7 +1141,8 @@ var VisualFormulaEditorPlugin = class extends import_obsidian.Plugin {
   }
 };
 var FormulaEditorModal = class extends import_obsidian.Modal {
-  constructor(app, plugin, editor, initialLatex = "", initialIsBlock = true, replaceRange, originalLatex, formulaRange, originalRaw, isInTable = false) {
+  constructor(app, plugin, editor, initialLatex = "", initialIsBlock, replaceRange, originalLatex, formulaRange, originalRaw, isInTable = false) {
+    var _a, _b;
     super(app);
     __publicField(this, "plugin");
     __publicField(this, "editor");
@@ -1160,7 +1165,9 @@ var FormulaEditorModal = class extends import_obsidian.Modal {
     const cleanedLatex = stripFormulaDelimiters(initialLatex);
     this.latex = cleanedLatex;
     this.isInTable = isInTable;
-    this.isBlock = isInTable ? false : initialIsBlock;
+    const defaultIsBlock = ((_b = (_a = this.plugin) == null ? void 0 : _a.settings) == null ? void 0 : _b.defaultMode) === "block";
+    const isBlockPreferred = initialIsBlock !== void 0 ? initialIsBlock : defaultIsBlock;
+    this.isBlock = isInTable ? false : isBlockPreferred;
     this.replaceRange = replaceRange;
     this.originalLatex = stripFormulaDelimiters(originalLatex || initialLatex);
     this.formulaRange = formulaRange;
