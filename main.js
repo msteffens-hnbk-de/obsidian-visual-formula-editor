@@ -138,12 +138,13 @@ var VisualFormulaEditorPlugin = class extends import_obsidian.Plugin {
                   inTable
                 ).open();
               } else if (selection) {
+                const defaultIsBlock = !inTable && this.settings.defaultMode === "block";
                 new FormulaEditorModal(
                   this.app,
                   this,
                   editor,
                   selection,
-                  inTable ? false : selection.includes("\\\\") || selection.length > 30,
+                  inTable ? false : selection.includes("\\\\") || selection.length > 30 ? true : defaultIsBlock,
                   void 0,
                   selection,
                   void 0,
@@ -151,7 +152,8 @@ var VisualFormulaEditorPlugin = class extends import_obsidian.Plugin {
                   inTable
                 ).open();
               } else {
-                new FormulaEditorModal(this.app, this, editor, "", !inTable, void 0, void 0, void 0, void 0, inTable).open();
+                const defaultIsBlock = !inTable && this.settings.defaultMode === "block";
+                new FormulaEditorModal(this.app, this, editor, "", defaultIsBlock, void 0, void 0, void 0, void 0, inTable).open();
               }
             });
           });
@@ -616,7 +618,8 @@ var VisualFormulaEditorPlugin = class extends import_obsidian.Plugin {
     }
     if (selection && selection.trim().length > 0) {
       let selText = selection.trim();
-      let isBlockSel = !inTable;
+      const defaultIsBlock2 = !inTable && this.settings.defaultMode === "block";
+      let isBlockSel = defaultIsBlock2;
       if (selText.startsWith("$$") && selText.endsWith("$$") && selText.length >= 4) {
         selText = selText.slice(2, -2).trim();
         isBlockSel = !inTable;
@@ -648,7 +651,8 @@ var VisualFormulaEditorPlugin = class extends import_obsidian.Plugin {
       ).open();
       return;
     }
-    new FormulaEditorModal(this.app, this, editor, "", !inTable, void 0, void 0, void 0, void 0, inTable).open();
+    const defaultIsBlock = !inTable && this.settings.defaultMode === "block";
+    new FormulaEditorModal(this.app, this, editor, "", defaultIsBlock, void 0, void 0, void 0, void 0, inTable).open();
   }
   /**
    * Öffnet den Editor für ein geklicktes Element.
@@ -1137,7 +1141,8 @@ var VisualFormulaEditorPlugin = class extends import_obsidian.Plugin {
   }
 };
 var FormulaEditorModal = class extends import_obsidian.Modal {
-  constructor(app, plugin, editor, initialLatex = "", initialIsBlock = true, replaceRange, originalLatex, formulaRange, originalRaw, isInTable = false) {
+  constructor(app, plugin, editor, initialLatex = "", initialIsBlock, replaceRange, originalLatex, formulaRange, originalRaw, isInTable = false) {
+    var _a, _b;
     super(app);
     __publicField(this, "plugin");
     __publicField(this, "editor");
@@ -1160,7 +1165,9 @@ var FormulaEditorModal = class extends import_obsidian.Modal {
     const cleanedLatex = stripFormulaDelimiters(initialLatex);
     this.latex = cleanedLatex;
     this.isInTable = isInTable;
-    this.isBlock = isInTable ? false : initialIsBlock;
+    const defaultIsBlock = ((_b = (_a = this.plugin) == null ? void 0 : _a.settings) == null ? void 0 : _b.defaultMode) === "block";
+    const isBlockPreferred = initialIsBlock !== void 0 ? initialIsBlock : defaultIsBlock;
+    this.isBlock = isInTable ? false : isBlockPreferred;
     this.replaceRange = replaceRange;
     this.originalLatex = stripFormulaDelimiters(originalLatex || initialLatex);
     this.formulaRange = formulaRange;
@@ -1221,11 +1228,8 @@ var FormulaEditorModal = class extends import_obsidian.Modal {
     blockIcon.innerHTML = getRadioSvg(isBlockChecked);
     const blockText = blockLabel.createSpan({ text: "Block ($$...$$)" });
     if (this.isInTable) {
-      blockLabel.style.cssText = "display: inline-flex; align-items: center; gap: 8px; cursor: not-allowed; opacity: 0.45; user-select: none;";
-      blockLabel.title = "Block-Formeln ($$...$$) sind innerhalb von Tabellenzellen deaktiviert, um das Tabellenlayout intakt zu halten.";
-      blockText.style.cssText = "color: var(--text-muted, #71717a); text-decoration: line-through;";
-      const badge = blockLabel.createSpan({ text: "In Tabellen deaktiviert" });
-      badge.style.cssText = "font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 2px 6px; border-radius: 4px; background: rgba(120, 53, 15, 0.4); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);";
+      blockLabel.style.cssText = "display: inline-flex; align-items: center; gap: 8px; cursor: not-allowed; opacity: 0.4; user-select: none;";
+      blockText.style.cssText = "color: var(--text-muted, #71717a);";
     } else {
       blockLabel.style.cssText = "display: inline-flex; align-items: center; gap: 8px; cursor: pointer;";
       blockText.style.color = this.isBlock ? "var(--interactive-accent, #a855f7)" : "var(--text-normal, #d4d4d8)";
@@ -1246,7 +1250,6 @@ var FormulaEditorModal = class extends import_obsidian.Modal {
     };
     blockLabel.onclick = () => {
       if (this.isInTable) {
-        new import_obsidian.Notice("In Tabellenzellen sind nur Inline-Formeln ($...$) zul\xE4ssig.");
         return;
       }
       this.isBlock = true;
@@ -1500,12 +1503,6 @@ var FormulaEditorSettingTab = class extends import_obsidian.PluginSettingTab {
     new import_obsidian.Setting(containerEl).setName("Direct click to edit").setDesc("Clicking rendered formulas in editing mode directly opens the visual editor.").addToggle(
       (toggle) => toggle.setValue(this.plugin.settings.enableDirectClickEdit).onChange(async (value) => {
         this.plugin.settings.enableDirectClickEdit = value;
-        await this.plugin.saveSettings();
-      })
-    );
-    new import_obsidian.Setting(containerEl).setName('Floating "\u03A3 Edit" hover button').setDesc("Optionally display a button when hovering over formulas in editing mode.").addToggle(
-      (toggle) => toggle.setValue(this.plugin.settings.enableFloatingHoverButton).onChange(async (value) => {
-        this.plugin.settings.enableFloatingHoverButton = value;
         await this.plugin.saveSettings();
       })
     );
